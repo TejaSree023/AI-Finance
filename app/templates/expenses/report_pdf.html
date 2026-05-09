@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Expense Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        h1 { text-align: center; color: #4f46e5; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .text-right { text-align: right; }
+    </style>
+</head>
+<body>
+    <h1>Expense Report</h1>
+    <p>Generated on: {{ current_user.created_at.strftime('%Y-%m-%d') }}</p> <!-- Mocked current date logic if needed -->
+    <p>User: {{ current_user.username }} ({{ current_user.email }})</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ expense.category }}</td>
+                <td>{{ expense.description or '-' }}</td>
+                <td class="text-right">₹{{ "%.2f"|format(expense.amount) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align: center;">No expenses recorded.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

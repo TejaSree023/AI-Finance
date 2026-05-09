@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="px-4 py-5 my-5 text-center">
+    <i class="fa-solid fa-chart-pie fa-5x text-primary mb-4"></i>
+    <h1 class="display-4 fw-bold">AI-Powered Personal Finance Analyzer</h1>
+    <div class="col-lg-6 mx-auto">
+        <p class="lead mb-4">Take control of your finances with intelligent insights, predictive budgeting, and beautiful analytics dashboards. Track your expenses effortlessly and achieve your financial goals.</p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-4 gap-3">Get Started</a>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary btn-lg px-4">Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

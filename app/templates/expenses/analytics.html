@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Smart Analytics & ML Insights</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('expenses.export_csv') }}" class="btn btn-sm btn-outline-secondary">Export CSV</a>
+            <a href="{{ url_for('expenses.export_pdf') }}" class="btn btn-sm btn-outline-secondary">Export PDF</a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Smart Insights (Pandas) -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 text-primary"><i class="fa-solid fa-lightbulb me-2"></i> Automated Insights</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for insight in insights %}
+                    <li class="list-group-item d-flex align-items-center px-0">
+                        <i class="fa-solid fa-check-circle text-success me-3"></i>
+                        {{ insight }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ML Prediction -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 text-info"><i class="fa-solid fa-brain me-2"></i> Predictive Analytics</h5>
+            </div>
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                {% if predicted_expense != None %}
+                <h6 class="text-muted text-uppercase mb-2">Predicted Expenses (Next Month)</h6>
+                <h2 class="display-5 text-dark fw-bold mb-3">₹{{ "%.2f"|format(predicted_expense) }}</h2>
+                <p class="text-muted small">Based on linear regression of your past spending trends.</p>
+                {% else %}
+                <div class="alert alert-info border-0 bg-info bg-opacity-10 text-info">
+                    <i class="fa-solid fa-info-circle me-2"></i> {{ ml_msg }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Category Chart -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0">Category Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trend Chart -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0">Monthly Spending Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="trendChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Anomalies -->
+{% if anomalies %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm border-0 border-danger border-start border-4">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Unusual Spending Detected</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Date</th>
+                                <th>Category</th>
+                                <th class="text-end pe-4">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for anomaly in anomalies %}
+                            <tr>
+                                <td class="ps-4">{{ anomaly.date }}</td>
+                                <td>{{ anomaly.category }}</td>
+                                <td class="text-end pe-4 text-danger fw-bold">₹{{ "%.2f"|format(anomaly.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Colors
+    const chartColors = [
+        '#4f46e5', '#10b981', '#f59e0b', '#ef4444', 
+        '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#64748b'
+    ];
+
+    // Category Pie Chart
+    const ctxCat = document.getElementById('categoryChart').getContext('2d');
+    new Chart(ctxCat, {
+        type: 'doughnut',
+        data: {
+            labels: {{ category_labels | safe }},
+            datasets: [{
+                data: {{ category_values | safe }},
+                backgroundColor: chartColors,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+
+    // Trend Bar/Line Chart
+    const ctxTrend = document.getElementById('trendChart').getContext('2d');
+    new Chart(ctxTrend, {
+        type: 'line',
+        data: {
+            labels: {{ trend_labels | safe }},
+            datasets: [{
+                label: 'Monthly Spend',
+                data: {{ trend_values | safe }},
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+</script>
+{% endblock %}

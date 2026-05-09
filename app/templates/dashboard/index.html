@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard Overview</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('expenses.add_expense') }}" class="btn btn-sm btn-outline-primary">
+            <i class="fa-solid fa-plus"></i> New Expense
+        </a>
+    </div>
+</div>
+</div>
+
+<!-- Smart Alerts -->
+{% if anomalies %}
+<div class="alert alert-danger shadow-sm border-0 d-flex align-items-center mb-4 rounded-3">
+    <i class="fa-solid fa-triangle-exclamation fa-2x me-3 text-danger"></i>
+    <div>
+        <strong>Unusual Spending Detected!</strong> You have {{ anomalies|length }} abnormal transaction(s) this month. 
+        <a href="{{ url_for('expenses.analytics') }}" class="alert-link">View Details</a>
+    </div>
+</div>
+{% endif %}
+
+{% if budget_usage_pct >= 90 %}
+<div class="alert alert-danger shadow-sm border-0 d-flex align-items-center mb-4 rounded-3">
+    <i class="fa-solid fa-fire fa-2x me-3"></i>
+    <div>
+        <strong>Critical Alert:</strong> You have used {{ "%.1f"|format(budget_usage_pct) }}% of your monthly budget! Only ₹{{ "%.2f"|format(remaining_budget) }} remaining.
+    </div>
+</div>
+{% elif budget_usage_pct >= 70 %}
+<div class="alert alert-warning shadow-sm border-0 d-flex align-items-center mb-4 rounded-3">
+    <i class="fa-solid fa-bell fa-2x me-3"></i>
+    <div>
+        <strong>Warning:</strong> You have used {{ "%.1f"|format(budget_usage_pct) }}% of your monthly budget. Watch your spending.
+    </div>
+</div>
+{% endif %}
+
+<!-- Financial Health Progress -->
+<div class="card shadow-sm border-0 mb-4 rounded-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-end mb-2">
+            <div>
+                <h6 class="text-uppercase text-muted mb-1">Budget Utilization</h6>
+                <h4 class="mb-0">{{ "%.1f"|format(budget_usage_pct) }}% <span class="badge {{ health_color_class }} ms-2">{{ health_text }}</span></h4>
+            </div>
+            <div class="text-end">
+                <p class="mb-0 text-muted small">Target: ₹{{ "%.2f"|format(current_user.monthly_budget) }}</p>
+            </div>
+        </div>
+        <div class="progress" style="height: 12px;">
+            <div class="progress-bar {{ health_color_class }} progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ budget_usage_pct }}%" aria-valuenow="{{ budget_usage_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+</div>
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 mb-4">
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 bg-primary text-white dashboard-card">
+            <div class="card-body">
+                <h6 class="card-title text-uppercase text-white-50">Total Expenses (All Time)</h6>
+                <h3 class="card-text mb-0">₹{{ "%.2f"|format(total_expenses) }}</h3>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <i class="fa-solid fa-wallet fa-2x opacity-50 position-absolute bottom-0 end-0 mb-3 me-3"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 bg-info text-white dashboard-card">
+            <div class="card-body">
+                <h6 class="card-title text-uppercase text-white-50">Monthly Spend</h6>
+                <h3 class="card-text mb-0">₹{{ "%.2f"|format(monthly_expenses) }}</h3>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <i class="fa-solid fa-calendar-alt fa-2x opacity-50 position-absolute bottom-0 end-0 mb-3 me-3"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 {% if remaining_budget < 0 %}bg-danger{% else %}bg-success{% endif %} text-white dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="card-title text-uppercase text-white-50 mb-0">Remaining Budget</h6>
+                    <button class="btn btn-sm btn-light py-0 px-2 opacity-75" data-bs-toggle="modal" data-bs-target="#budgetModal" title="Edit Budget">
+                        <i class="fa-solid fa-pen" style="font-size: 0.75rem;"></i>
+                    </button>
+                </div>
+                <h3 class="card-text mb-0">₹{{ "%.2f"|format(remaining_budget) }}</h3>
+                <small class="text-white-50">of ₹{{ "%.2f"|format(current_user.monthly_budget) }}</small>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <i class="fa-solid fa-piggy-bank fa-2x opacity-50 position-absolute bottom-0 end-0 mb-3 me-3"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 bg-warning text-dark dashboard-card">
+            <div class="card-body">
+                <h6 class="card-title text-uppercase text-muted">Daily Average</h6>
+                <h3 class="card-text mb-0">₹{{ "%.2f"|format(daily_average) }}</h3>
+                <small class="text-muted">Highest: {{ highest_category }}</small>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <i class="fa-solid fa-bolt fa-2x opacity-25 position-absolute bottom-0 end-0 mb-3 me-3"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Daily Safe Limit & Predictor -->
+    <div class="col-lg-4">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0"><i class="fa-solid fa-shield-heart text-success me-2"></i> Financial Health</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4 text-center">
+                    <h6 class="text-muted text-uppercase mb-2">Daily Safe Limit</h6>
+                    <h2 class="display-5 fw-bold text-success">₹{{ "%.2f"|format(daily_safe_limit) }}</h2>
+                    <p class="text-muted small mb-0">For the remaining {{ days_left }} days</p>
+                </div>
+                <hr>
+                <div class="text-center mt-4">
+                    <h6 class="text-muted text-uppercase mb-2">Predicted EOM Spend</h6>
+                    <h3 class="fw-bold {% if projected_spend > current_user.monthly_budget %}text-danger{% else %}text-primary{% endif %}">₹{{ "%.2f"|format(projected_spend) }}</h3>
+                    {% if projected_spend > current_user.monthly_budget %}
+                        <small class="text-danger"><i class="fa-solid fa-arrow-trend-up"></i> Projected to exceed budget by ₹{{ "%.2f"|format(projected_spend - current_user.monthly_budget) }}</small>
+                    {% else %}
+                        <small class="text-success"><i class="fa-solid fa-arrow-trend-down"></i> On track to save ₹{{ "%.2f"|format(current_user.monthly_budget - projected_spend) }}</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dashboard Charts -->
+    <div class="col-lg-4">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0">Category Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="dashCategoryChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0">6-Month Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="dashTrendChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Transactions -->
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Transactions</h5>
+                <a href="{{ url_for('expenses.list_expenses') }}" class="btn btn-sm btn-link text-decoration-none">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th class="text-end pe-4">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in recent_transactions %}
+                            <tr>
+                                <td class="ps-4">{{ expense.date.strftime('%b %d, %Y') }}</td>
+                                <td><span class="badge bg-secondary">{{ expense.category }}</span></td>
+                                <td>{{ expense.description or '-' }}</td>
+                                <td class="text-end pe-4 fw-bold text-danger">₹{{ "%.2f"|format(expense.amount) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">No recent transactions.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Budget Modal -->
+<div class="modal fade" id="budgetModal" tabindex="-1" aria-labelledby="budgetModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form action="{{ url_for('main.update_budget') }}" method="POST">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title" id="budgetModalLabel">Update Monthly Budget</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="budgetInput" class="form-label text-muted">New Budget Amount (₹)</label>
+            <input type="number" step="0.01" min="0" class="form-control form-control-lg" id="budgetInput" name="budget" value="{{ current_user.monthly_budget }}" required>
+          </div>
+        </div>
+        <div class="modal-footer border-top-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Colors
+    const chartColors = [
+        '#4f46e5', '#10b981', '#f59e0b', '#ef4444', 
+        '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#64748b'
+    ];
+
+    // Category Doughnut Chart
+    const ctxCat = document.getElementById('dashCategoryChart');
+    if(ctxCat) {
+        new Chart(ctxCat.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: {{ category_labels | safe }},
+                datasets: [{
+                    data: {{ category_values | safe }},
+                    backgroundColor: chartColors,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12 } }
+                }
+            }
+        });
+    }
+
+    // Trend Bar Chart
+    const ctxTrend = document.getElementById('dashTrendChart');
+    if(ctxTrend) {
+        new Chart(ctxTrend.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: {{ trend_labels | safe }},
+                datasets: [{
+                    label: 'Spend',
+                    data: {{ trend_values | safe }},
+                    backgroundColor: '#0ea5e9',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

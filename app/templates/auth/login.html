@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4 p-md-5">
+                <h2 class="text-center mb-4 font-weight-bold">Welcome Back</h2>
+                <form method="POST" action="">
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control form-control-lg" name="email" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control form-control-lg" name="password" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" name="remember" id="remember">
+                        <label class="form-check-label" for="remember">Remember Me</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 btn-lg mb-3">Login</button>
+                </form>
+                <div class="text-center text-muted">
+                    Don't have an account? <a href="{{ url_for('auth.register') }}" class="text-decoration-none">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
